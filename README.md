@@ -40,14 +40,19 @@ You run the following command to get a list of connected devices
 `adb devices` 
 
 
-If youre device is showing up like  
+If your device is showing up like  
 `?????????? BlahBlah`
-
 
 Then you need to make sure adb is running as root
 
+If it shows up as  
+`asd4t4gfgf offline`
 
-To transfer and install the app to your device, you can either run one of the ant install targets    
+Then your device needs to accept the connection from the computer, you should have a dialog to accept on your device  
+
+
+To transfer and install the app to your device, you can either run one of the ant install targets  
+`ant installd`  
 or run the following command (the -r is for reinstalling the app):  
 `adb install [-r] <path to .apk file>`  
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Pekgd</string>
+    <string name="toggle_monitor_text">Toggle Monitoring</string>
+    <string name="menu_settings">Settings</string>
+    <string name="toggle_monitor">LED</string>
+    <string name="button_monitor_text">Monitor View</string>
+
+</resources>

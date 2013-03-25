@@ -1,0 +1,9 @@
+============================= TODO List =======================================
+
+1. remove /libs from SCM - move to maven for dependency management
+   This will involve putting the IOIO files in a maven repo
+
+2. make a build script that will checkout latest IOIO src, compile, rename 
+   jars and copy them to given location
+
+3. do the same as #2 but include GraphView

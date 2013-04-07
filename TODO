@@ -1,9 +1,20 @@
 ============================= TODO List =======================================
 
-1. remove /libs from SCM - move to maven for dependency management
-   This will involve putting the IOIO files in a maven repo
+As of 04/06/2013
 
-2. make a build script that will checkout latest IOIO src, compile, rename 
-   jars and copy them to given location
+* Fix activity xmls for UserActivity and SavedDataActivity
 
-3. do the same as #2 but include GraphView
+* make custom ActionBar
+
+* save datapoints to db
+
+* make new activities do stuff
+  - HistoryActivity
+  - UserActivity
+  - SavedDataActivity
+  
+* Prevent phone sleep while MonitorActivity active (dimming is okay)
+
+* FIX axis labels
+* FIX orientation change will reset graph
+* FIX you have to touch the screen for the graph to update

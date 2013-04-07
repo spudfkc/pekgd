@@ -1,4 +1,7 @@
-package com.example.pekgd;
+package org.pekgd;
+
+import java.text.DecimalFormat;
+import java.text.Format;
 
 import ioio.lib.api.AnalogInput;
 import ioio.lib.api.DigitalOutput;
@@ -13,72 +16,102 @@ import android.util.Log;
 import android.view.Menu;
 import android.widget.LinearLayout;
 
+import com.example.pekgd.R;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GraphView.GraphViewData;
 import com.jjoe64.graphview.GraphViewSeries;
 import com.jjoe64.graphview.GraphViewSeries.GraphViewSeriesStyle;
 import com.jjoe64.graphview.LineGraphView;
 
-public class MainActivity extends IOIOActivity {
+/**
+ * This Activity saves and graphs the heart activity of a user.
+ *
+ * @author ncc
+ *
+ */
+public class MonitorActivity extends IOIOActivity {
 
     public static final int ANALOG_INPUT_PIN = 33;
+    private static final String FORMAT_PATTERN = "";
 
     private GraphView view;
     private GraphViewSeries currentSeries;
     private String TAG = "PEKGD";
 
 
+    Format formatter = new DecimalFormat(FORMAT_PATTERN);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /**
-         * FIXME
-         */
-//        IOIOConnectionRegistry.addBootstraps(new String[] {
-//            "ioio.lib.impl.SocketIOIOConnectionBootstrap",
-//            //"ioio.lib.android.accessory.AccessoryConnectionBootstrap",
-//            "ioio.lib.android.bluetooth.BluetoothIOIOConnectionBootstrap"
-//        });
+        if (view == null) {
+            view = new LineGraphView(this, "TODO: TITLE") {
 
-
-        view = new LineGraphView(this, "TODO: TITLE") {
-            /**
-             * This method formats the X and Y values/labels on the different axis
-             */
-            @Override
-            protected String formatLabel(double value, boolean isValueX) {
-                if (isValueX) {
-                    // TODO format x-axis
-                    return value + "";
+                /**
+                 * This returns the largest possible Y value we can have.
+                 * Since we're currently getting a value between 0 and 1 from
+                 * the IOIO, we can set the max to 1.
+                 * This may have to change later depending on how we decide to
+                 * format the y-axis
+                 */
+                @Override
+                protected double getMaxY() {
+                    double largest = 1;
+                    return largest;
                 }
-                else {
-                    // TODO format y-axis
-                    return value + "";
+
+                @Override
+                protected double getMinY() {
+                    double min = 0;
+                    return min;
                 }
-            }
-        };
 
-        view.setBackgroundColor(Color.BLACK);
-        view.setScalable(false);
-        view.setScrollable(true);
+                /**
+                 * This method formats the X and Y values/labels on the different axis
+                 */
+                @Override
+                protected String formatLabel(double value, boolean isValueX) {
+                    if (isValueX) {
+                        // TODO format x-axis
+                        return formatter.format(value);
+                    }
+                    else {
+                        // TODO format y-axis
+                        return formatter.format(value);
+                    }
+                }
+            };
 
-        // This will set the default view of the graph
-//        view.setViewPort(arg0, arg1);
+            view.setBackgroundColor(Color.BLACK);
+            view.setViewPort(10, 100000);
+            view.setScrollable(true);
+            view.setScalable(true);
 
-
-        GraphViewSeriesStyle seriesStyle = new GraphViewSeriesStyle(Color.RED, 3);
-        currentSeries = new GraphViewSeries("TODO description 0", seriesStyle, new GraphViewData[0]);
-        view.addSeries(currentSeries);
+            GraphViewSeriesStyle seriesStyle = new GraphViewSeriesStyle(Color.RED, 3);
+            currentSeries = new GraphViewSeries("TODO description 0", seriesStyle, new GraphViewData[0]);
+            view.addSeries(currentSeries);
+        }
 
         LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
-        Log.d(TAG, "Is view null? " + view + " END");
         layout.addView(view);
 
         enableUi(false);
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // TODO
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // TODO
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

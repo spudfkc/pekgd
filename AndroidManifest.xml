@@ -3,40 +3,53 @@
     package="com.example.pekgd"
     android:versionCode="1"
     android:versionName="1.0" >
-    
+
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.INTERNET" />
-
 
     <uses-sdk
         android:minSdkVersion="8"
         android:targetSdkVersion="17" />
-    
 
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
-        <uses-library android:name="com.android.future.usb.accessory"
-                      android:required="false" />
+        <uses-library
+            android:name="com.android.future.usb.accessory"
+            android:required="false" />
 
         <activity
-            android:name="com.example.pekgd.MainActivity"
+            android:name="org.pekgd.MonitorActivity"
             android:label="@string/app_name" >
             <intent-filter>
-                    <action android:name="android.intent.action.MAIN" />
-                    <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
-                    <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />
+                <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />
             </intent-filter>
-            <meta-data android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
-                       android:resource="@xml/accessory_filter" />
 
-
-
+            <meta-data
+                android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
+                android:resource="@xml/accessory_filter" />
         </activity>
+        <activity
+            android:name="com.example.pekgd.HistoryActivity"
+            android:label="@string/title_activity_history" >
+        </activity>
+        
+        <activity
+            android:name="com.example.pekgd.UserActivity"
+            android:label="@string/title_activity_user" >
+        </activity>
+        <activity
+            android:name="com.example.pekgd.SavedDataActivity"
+            android:label="@string/title_activity_saved_data" >
+        </activity>
+        
     </application>
 
 </manifest>

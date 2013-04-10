@@ -20,7 +20,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.LinearLayout;
 
-import com.example.pekgd.R;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GraphView.GraphViewData;
 import com.jjoe64.graphview.GraphViewSeries;
@@ -61,7 +60,7 @@ public class MonitorActivity extends IOIOActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+//        setContentView(R.layout.activity_main);
 
         // If we do not yet have a view, create one
         if (view == null) {
@@ -146,6 +145,8 @@ public class MonitorActivity extends IOIOActivity {
         // and dd the graph to the layout
         layout.addView(view);
 
+
+
         // Disable the UI until the IOIO is connected
         enableUi(false);
     }
@@ -167,6 +168,7 @@ public class MonitorActivity extends IOIOActivity {
      * @explain
      * This will populate the ActionBar with the items given in activity_main xml
      */
+    /*
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -174,6 +176,7 @@ public class MonitorActivity extends IOIOActivity {
         inflater.inflate(R.menu.activity_main, menu);
         return true;
     }
+    */
 
     /**
      * @explain

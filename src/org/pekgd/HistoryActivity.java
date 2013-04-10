@@ -1,4 +1,8 @@
-package com.example.pekgd;
+package org.pekgd;
+
+import com.example.pekgd.R;
+import com.example.pekgd.R.layout;
+import com.example.pekgd.R.menu;
 
 import android.os.Bundle;
 import android.app.Activity;

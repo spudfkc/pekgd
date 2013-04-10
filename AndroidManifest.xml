@@ -37,7 +37,7 @@
                 android:resource="@xml/accessory_filter" />
         </activity>
         <activity
-            android:name="com.example.pekgd.HistoryActivity"
+            android:name="org.pekgd.HistoryActivity"
             android:label="@string/title_activity_history" >
         </activity>
         

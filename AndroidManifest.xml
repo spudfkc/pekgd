@@ -42,11 +42,11 @@
         </activity>
         
         <activity
-            android:name="com.example.pekgd.UserActivity"
+            android:name="org.pekgd.UserActivity"
             android:label="@string/title_activity_user" >
         </activity>
         <activity
-            android:name="com.example.pekgd.SavedDataActivity"
+            android:name="org.pekgd.SavedDataActivity"
             android:label="@string/title_activity_saved_data" >
         </activity>
         

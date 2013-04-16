@@ -8,8 +8,14 @@ import ioio.lib.util.BaseIOIOLooper;
 import ioio.lib.util.IOIOLooper;
 import ioio.lib.util.android.IOIOActivity;
 
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.Format;
+import java.util.UUID;
+
+import org.pekgd.db.PekgdDbHelper;
+import org.pekgd.model.SavedData;
+import org.pekgd.model.User;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -20,6 +26,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.LinearLayout;
 
+import com.j256.ormlite.android.apptools.OpenHelperManager;
+import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
+import com.j256.ormlite.dao.Dao;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GraphView.GraphViewData;
 import com.jjoe64.graphview.GraphViewSeries;
@@ -38,15 +47,23 @@ public class MonitorActivity extends IOIOActivity {
     public static final int ANALOG_INPUT_PIN = 33;
 
     // This is how the labels along the graph axises will be formatted.
-    private static final String FORMAT_PATTERN = "";
+    private static final String FORMAT_PATTERN = "####.##";
+
+    private PekgdDbHelper dbHelper = null;
 
     // This is the actual graph that is displayed on the screen. It is the
     // main component of graphing.
-    private GraphView view;
+    private GraphView view = null;
 
     // This is the series of data points that we will be displaying on the graph
     // The single GraphView can have multiple series, but we only need one.
     private GraphViewSeries currentSeries;
+
+    // TODO explain
+    private SavedData sessionData = null;
+
+    // TODO explain
+    private User sessionUser = null;
 
     // the tag that the logger uses for this class
     // Sticking to the format of the fully-qualified class name
@@ -56,18 +73,58 @@ public class MonitorActivity extends IOIOActivity {
     // using the given pattern.
     private Format formatter = new DecimalFormat(FORMAT_PATTERN);
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Intent intent = getIntent();
+
+        // FIXME get user? how?
+        Dao<User, UUID> userDao = null;
+        try {
+
+            userDao = getDbHelper().getUserDao();
+            sessionUser = new User("admin", "admin");
+            userDao.create(sessionUser);
+        }
+        catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
+        if (sessionUser == null) {
+            throw new RuntimeException("No User for the current session!");
+        }
+
+        // TODO explain
+        sessionData = new SavedData(sessionUser);
 
         // If we do not yet have a view, create one
         if (view == null) {
             // We override some methods here so we can adjust how the graph looks.
             // If we don't, the graph will keep auto-adjusting the scale and it
             // becomes unreadable.
-            view = new LineGraphView(this, "TODO: TITLE") {
+            String title = "-No User-";
+            if (intent != null) {
+                Bundle extras = intent.getExtras();
+
+                if (extras != null) {
+                    String userIdStr = extras.getString(UserActivity.SESSION_USER_ID);
+                    if (userIdStr != null && !userIdStr.equals("")) {
+                        UUID userId = UUID.fromString(userIdStr);
+                        try {
+                            sessionUser = userDao.queryForId(userId);
+                        } catch (SQLException e) {
+                            // TODO Auto-generated catch block
+                            Log.e(TAG, e.getMessage(), e);
+                        }
+                    }
+                }
+            }
+
+            view = new LineGraphView(this, title) {
 
                 /**
                  * This returns the largest possible Y value we can have.
@@ -102,14 +159,13 @@ public class MonitorActivity extends IOIOActivity {
                 @Override
                 protected String formatLabel(double value, boolean isValueX) {
                     if (isValueX) {
-                        return value+"";
                         // TODO format x-axis
-//                        return formatter.format(value);
+                        return Math.round(value)+"ms";
                     }
                     else {
-                        return value+"";
                         // TODO format y-axis
-//                        return formatter.format(value);
+                        return value+"";
+//                        return formatter.format(value)+"mV";
                     }
                 }
             };
@@ -120,7 +176,7 @@ public class MonitorActivity extends IOIOActivity {
             // This sets the starting position and size of the viewport
             // This may need more tweaking to look right. Also, I'm not sure
             // of performance impacts of such a large viewport.
-            view.setViewPort(700, 100000);
+            view.setViewPort(700, 50000);
 
             // This allows the user to scroll the graph from left to right
             view.setScrollable(true);
@@ -131,7 +187,7 @@ public class MonitorActivity extends IOIOActivity {
             view.setScalable(true);
 
             // Let's change how the series looks(that contains the analog input from the IOIO)
-            GraphViewSeriesStyle seriesStyle = new GraphViewSeriesStyle(Color.RED, 3);
+            GraphViewSeriesStyle seriesStyle = new GraphViewSeriesStyle(Color.YELLOW, 3);
             currentSeries = new GraphViewSeries(
                     "TODO description 0", seriesStyle, new GraphViewData[0]);
 
@@ -151,11 +207,23 @@ public class MonitorActivity extends IOIOActivity {
         enableUi(false);
     }
 
+    /**
+     * @explain
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // TODO
+
+        // Release the dbHelper
+        if (dbHelper != null) {
+            OpenHelperManager.releaseHelper();
+            dbHelper = null;
+        }
     }
+
+    /**
+     * @TODO
+     */
 
     @Override
     protected void onPause() {
@@ -176,7 +244,6 @@ public class MonitorActivity extends IOIOActivity {
         return true;
     }
 
-
     /**
      * @explain
      * This determines what to when a menu item is selected
@@ -184,18 +251,44 @@ public class MonitorActivity extends IOIOActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Log.d(TAG, "onOptionsItemSelected() - " + item + " : " + item.getItemId());
+        Intent intent = null;
         switch (item.getItemId()) {
+            case R.id.menu_user:
+                intent = new Intent(this, UserActivity.class);
+                break;
+            case R.id.menu_saved_data:
+                break;
+            case R.id.menu_settings:
+                break;
+            case R.id.menu_monitor:
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
-//        Intent intent = new Intent(this, UserActivity.class);
-//        startActivity(intent);
+        if (intent != null) {
+            intent.putExtra(UserActivity.SESSION_USER_ID, sessionUser.getId());
+            startActivity(intent);
+        }
+        return true;
+    }
+
+    /**
+     * @explain
+     *
+     * @return new or cached database helper. It is used to read and
+     * write to the database.
+     */
+    private PekgdDbHelper getDbHelper() {
+        if (dbHelper == null) {
+            dbHelper = PekgdDbHelper.getDbHelper(this);
+        }
+        return dbHelper;
     }
 
     /**
      * Enables or disables the UI
      * Disabled for when IOIO is not connected
-     * @param enable
+     * @param enable enables the UI if true, disables the UI if false
      */
     private void enableUi(final boolean enable) {
         runOnUiThread(new Runnable() {
@@ -208,14 +301,24 @@ public class MonitorActivity extends IOIOActivity {
 
     /**
      * Appends the given data to the given series and scrolls the graph to the end
-     * @param series
-     * @param data
+     * @param series which series on the graph to append the data to
+     * @param data the data to be appended
      */
     private void addData(final GraphViewSeries series, final GraphViewData data) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 series.appendData(data, true);
+//                view.invalidate(); // TESTING
+                sessionData.addDataPoint(data.valueX, data.valueY);
+//                try {
+//                    Dao<SavedData, UUID> dataDao = getDbHelper().getSavedDataDao();
+//                    dataDao.createOrUpdate(sessionData);
+//                }
+//                catch (SQLException e) {
+//                    Log.e(TAG, "Unable to save or update data", e);
+//                    throw new RuntimeException("Unable to save or update data", e);
+//                }
             }
         });
     }
@@ -227,7 +330,6 @@ public class MonitorActivity extends IOIOActivity {
     protected IOIOLooper createIOIOLooper() {
         return new Looper();
     }
-
 
     /**
      *
@@ -295,14 +397,13 @@ public class MonitorActivity extends IOIOActivity {
          */
         @Override
         public void loop() throws ConnectionLostException, InterruptedException {
-            led_.write(true);
             final float reading = input_.read();
             double description;
             description = (System.currentTimeMillis() - startTime);
             GraphViewData dataPoint = new GraphViewData(description, reading);
             addData(currentSeries, dataPoint);
             try {
-                Thread.sleep(500);
+                Thread.sleep(5);
             }
             catch (InterruptedException e) { /* we can't do much about this */ }
         }

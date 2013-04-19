@@ -14,6 +14,7 @@ import java.text.Format;
 import java.util.UUID;
 
 import org.pekgd.db.PekgdDbHelper;
+import org.pekgd.model.DataPoint;
 import org.pekgd.model.SavedData;
 import org.pekgd.model.User;
 
@@ -43,8 +44,10 @@ import com.jjoe64.graphview.LineGraphView;
  */
 public class MonitorActivity extends IOIOActivity {
 
+    public static final int MAX_BUFFER = 10000;
+
     // The pin on which to read the voltage from the heart monitor circuit.
-    public static final int ANALOG_INPUT_PIN = 33;
+    public static final int ANALOG_INPUT_PIN = 36;
 
     // This is how the labels along the graph axises will be formatted.
     private static final String FORMAT_PATTERN = "####.##";
@@ -73,39 +76,22 @@ public class MonitorActivity extends IOIOActivity {
     // using the given pattern.
     private Format formatter = new DecimalFormat(FORMAT_PATTERN);
 
+    private int bpm;
+
+    private Dao<SavedData, UUID> dataDao;
+    private Dao<DataPoint, UUID> pointDao;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Dao<User, UUID> userDao = null;
         Intent intent = getIntent();
 
-        // FIXME get user? how?
-        Dao<User, UUID> userDao = null;
-        try {
-
-            userDao = getDbHelper().getUserDao();
-            sessionUser = new User("admin", "admin");
-            userDao.create(sessionUser);
-        }
-        catch (SQLException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-
-        if (sessionUser == null) {
-            throw new RuntimeException("No User for the current session!");
-        }
-
         // TODO explain
-        sessionData = new SavedData(sessionUser);
-
         // If we do not yet have a view, create one
         if (view == null) {
-            // We override some methods here so we can adjust how the graph looks.
-            // If we don't, the graph will keep auto-adjusting the scale and it
-            // becomes unreadable.
             String title = "-No User-";
             if (intent != null) {
                 Bundle extras = intent.getExtras();
@@ -115,6 +101,7 @@ public class MonitorActivity extends IOIOActivity {
                     if (userIdStr != null && !userIdStr.equals("")) {
                         UUID userId = UUID.fromString(userIdStr);
                         try {
+                            userDao = getDbHelper().getUserDao();
                             sessionUser = userDao.queryForId(userId);
                         } catch (SQLException e) {
                             // TODO Auto-generated catch block
@@ -123,7 +110,12 @@ public class MonitorActivity extends IOIOActivity {
                     }
                 }
             }
+            // Set the user for the dataset
+            sessionData = new SavedData(sessionUser);
 
+            // We override some methods here so we can adjust how the graph looks.
+            // If we don't, the graph will keep auto-adjusting the scale and it
+            // becomes unreadable.
             view = new LineGraphView(this, title) {
 
                 /**
@@ -176,7 +168,7 @@ public class MonitorActivity extends IOIOActivity {
             // This sets the starting position and size of the viewport
             // This may need more tweaking to look right. Also, I'm not sure
             // of performance impacts of such a large viewport.
-            view.setViewPort(700, 50000);
+            view.setViewPort(700, 5000);
 
             // This allows the user to scroll the graph from left to right
             view.setScrollable(true);
@@ -201,10 +193,16 @@ public class MonitorActivity extends IOIOActivity {
         // and dd the graph to the layout
         layout.addView(view);
 
-
+        try {
+            dataDao = getDbHelper().getSavedDataDao();
+        }
+        catch (SQLException e) {
+            Log.e(TAG, "Could not get SavedData Dao", e);
+        }
 
         // Disable the UI until the IOIO is connected
         enableUi(false);
+
     }
 
     /**
@@ -224,13 +222,11 @@ public class MonitorActivity extends IOIOActivity {
     /**
      * @TODO
      */
-
     @Override
     protected void onPause() {
         super.onPause();
         // TODO
     }
-
 
     /**
      * @explain
@@ -239,8 +235,8 @@ public class MonitorActivity extends IOIOActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_main, menu);
+//        MenuInflater inflater = getMenuInflater();
+//        inflater.inflate(R.menu.activity_main, menu);
         return true;
     }
 
@@ -309,16 +305,14 @@ public class MonitorActivity extends IOIOActivity {
             @Override
             public void run() {
                 series.appendData(data, true);
-//                view.invalidate(); // TESTING
                 sessionData.addDataPoint(data.valueX, data.valueY);
-//                try {
-//                    Dao<SavedData, UUID> dataDao = getDbHelper().getSavedDataDao();
-//                    dataDao.createOrUpdate(sessionData);
-//                }
-//                catch (SQLException e) {
-//                    Log.e(TAG, "Unable to save or update data", e);
-//                    throw new RuntimeException("Unable to save or update data", e);
-//                }
+                try {
+                    dataDao.createOrUpdate(sessionData);
+                }
+                catch (SQLException e) {
+                    Log.e(TAG, "Unable to save or update data", e);
+                    throw new RuntimeException("Unable to save or update data", e);
+                }
             }
         });
     }
@@ -357,6 +351,8 @@ public class MonitorActivity extends IOIOActivity {
         // get set until the IOIO is connected.
         private long startTime;
 
+        private long currentSample;
+
 
         /**
          * This method is ran once the IOIO has been successfully connected. It contains
@@ -369,11 +365,12 @@ public class MonitorActivity extends IOIOActivity {
          */
         @Override
         public void setup() throws ConnectionLostException {
-            led_ = ioio_.openDigitalOutput(IOIO.LED_PIN, true);
+//            led_ = ioio_.openDigitalOutput(IOIO.LED_PIN, true);
             input_ = ioio_.openAnalogInput(ANALOG_INPUT_PIN);
+            input_.setBuffer(MAX_BUFFER);
 
             startTime = System.currentTimeMillis();
-
+            currentSample = 0;
             enableUi(true);
         }
 
@@ -397,13 +394,17 @@ public class MonitorActivity extends IOIOActivity {
          */
         @Override
         public void loop() throws ConnectionLostException, InterruptedException {
-            final float reading = input_.read();
-            double description;
-            description = (System.currentTimeMillis() - startTime);
-            GraphViewData dataPoint = new GraphViewData(description, reading);
-            addData(currentSeries, dataPoint);
+            int maxRead = 2000;
+            int samplesAvailable = input_.available();
+            Log.d(TAG, "***AvailableSampled*** -> " + samplesAvailable);
+            if (samplesAvailable < maxRead) { maxRead = samplesAvailable; }
+            for (int i = 0; i < maxRead; i++) {
+                final float reading = input_.readBuffered();
+                GraphViewData dataPoint = new GraphViewData(currentSample++, reading);
+                addData(currentSeries, dataPoint);
+            }
             try {
-                Thread.sleep(5);
+                Thread.sleep(50);
             }
             catch (InterruptedException e) { /* we can't do much about this */ }
         }

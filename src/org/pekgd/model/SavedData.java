@@ -17,8 +17,10 @@ public class SavedData {
     @DatabaseField(canBeNull = false, foreign = true)
     private User user;
 
-    @ForeignCollectionField
+    @ForeignCollectionField(eager = true)
     private Collection<DataPoint> data = new ArrayList<DataPoint>();
+
+    private long startTime = 0L;
 
     public SavedData() { /* needed for ORMLite */ }
 
@@ -63,6 +65,13 @@ public class SavedData {
      */
     public void addDataPoint(double x, double y) {
         data.add(new DataPoint(x, y, this));
+    }
+
+    public long getStartTime() {
+        if (startTime == 0L) {
+            startTime = (long) getData().get(0).getXvalue();
+        }
+        return startTime;
     }
 
 }

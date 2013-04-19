@@ -1,0 +1,61 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".NewUserActivity" >
+
+    <EditText
+        android:id="@+id/nameTextInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:hint="Firstname Lastname" >
+    </EditText>
+
+    <EditText
+        android:id="@+id/emailTextInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/nameTextInput"
+        android:layout_below="@+id/nameTextInput"
+        android:layout_marginTop="25dp"
+        android:ems="10"
+        android:inputType="textEmailAddress" 
+        android:hint="email@domain.com" />
+
+    <EditText
+        android:id="@+id/phoneTextInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/emailTextInput"
+        android:layout_below="@+id/emailTextInput"
+        android:layout_marginTop="24dp"
+        android:ems="10"
+        android:inputType="phone"
+        android:hint="1(555)555-5555" />
+
+    <EditText
+        android:id="@+id/addressTextInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/phoneTextInput"
+        android:layout_centerVertical="true"
+        android:ems="10"
+        android:inputType="textPostalAddress"
+        android:hint="Address" />
+
+    <Button
+        android:id="@+id/btnNewUserSubmit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:text="Submit" />
+
+</RelativeLayout>

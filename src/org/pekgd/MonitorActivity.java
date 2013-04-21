@@ -26,6 +26,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
@@ -44,14 +45,21 @@ import com.jjoe64.graphview.LineGraphView;
  */
 public class MonitorActivity extends IOIOActivity {
 
+
+    // Maximum size of the buffer for the IOIO sampling
     public static final int MAX_BUFFER = 10000;
 
     // The pin on which to read the voltage from the heart monitor circuit.
     public static final int ANALOG_INPUT_PIN = 36;
 
+    // the tag that the logger uses for this class
+    // Sticking to the format of the fully-qualified class name
+    private static final String TAG = MonitorActivity.class.getClass().getName();
+
     // This is how the labels along the graph axises will be formatted.
     private static final String FORMAT_PATTERN = "####.##";
 
+    // Helper object for accessing DAOs and communicating with the database
     private PekgdDbHelper dbHelper = null;
 
     // This is the actual graph that is displayed on the screen. It is the
@@ -62,54 +70,59 @@ public class MonitorActivity extends IOIOActivity {
     // The single GraphView can have multiple series, but we only need one.
     private GraphViewSeries currentSeries;
 
-    // TODO explain
+    // The data collected and to be saved in the database - similar to GraphViewSeries
     private SavedData sessionData = null;
 
-    // TODO explain
+    // The user that this monitoring session is for
     private User sessionUser = null;
-
-    // the tag that the logger uses for this class
-    // Sticking to the format of the fully-qualified class name
-    private String TAG = MonitorActivity.class.getClass().getName();
 
     // This does the actual formatting of the axis labels
     // using the given pattern.
     private Format formatter = new DecimalFormat(FORMAT_PATTERN);
 
+    // beats per minute of the current user
     private int bpm;
 
+    // Data Access Objects used to access different objects from the database
     private Dao<SavedData, UUID> dataDao;
     private Dao<DataPoint, UUID> pointDao;
+
+    private MonitorActivity this_;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Dao<User, UUID> userDao = null;
+        this_ = this;
+
         Intent intent = getIntent();
 
-        // TODO explain
+        Dao<User, UUID> userDao = null;
         // If we do not yet have a view, create one
         if (view == null) {
             String title = "-No User-";
-            if (intent != null) {
-                Bundle extras = intent.getExtras();
 
-                if (extras != null) {
-                    String userIdStr = extras.getString(UserActivity.SESSION_USER_ID);
-                    if (userIdStr != null && !userIdStr.equals("")) {
-                        UUID userId = UUID.fromString(userIdStr);
-                        try {
-                            userDao = getDbHelper().getUserDao();
-                            sessionUser = userDao.queryForId(userId);
-                        } catch (SQLException e) {
-                            // TODO Auto-generated catch block
-                            Log.e(TAG, e.getMessage(), e);
-                        }
+            // get the current user from the intent and set it for this session
+            Bundle extras = intent.getExtras();
+            if (extras != null) {
+                String userIdStr = extras.getString(UserActivity.SESSION_USER_ID);
+                if (userIdStr != null && !userIdStr.equals("")) {
+                    UUID userId = UUID.fromString(userIdStr);
+                    try {
+                        userDao = getDbHelper().getUserDao();
+                        sessionUser = userDao.queryForId(userId);
+                    } catch (SQLException e) {
+                        Log.e(TAG, e.getMessage(), e);
+                        throw new RuntimeException(e);
                     }
                 }
             }
+            if (sessionUser == null) {
+                throw new RuntimeException("No user specified!");
+            }
+
+            title = sessionUser.getName();
             // Set the user for the dataset
             sessionData = new SavedData(sessionUser);
 
@@ -181,7 +194,7 @@ public class MonitorActivity extends IOIOActivity {
             // Let's change how the series looks(that contains the analog input from the IOIO)
             GraphViewSeriesStyle seriesStyle = new GraphViewSeriesStyle(Color.YELLOW, 3);
             currentSeries = new GraphViewSeries(
-                    "TODO description 0", seriesStyle, new GraphViewData[0]);
+                    "placeholder", seriesStyle, new GraphViewData[0]);
 
             // Finally, add the series to the graph
             view.addSeries(currentSeries);
@@ -202,7 +215,7 @@ public class MonitorActivity extends IOIOActivity {
 
         // Disable the UI until the IOIO is connected
         enableUi(false);
-
+        Toast.makeText(this, "Waiting on IOIO connection...", Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -365,7 +378,13 @@ public class MonitorActivity extends IOIOActivity {
          */
         @Override
         public void setup() throws ConnectionLostException {
-//            led_ = ioio_.openDigitalOutput(IOIO.LED_PIN, true);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(this_, "IOIO Connected.", Toast.LENGTH_SHORT).show();
+                }
+
+            });
             input_ = ioio_.openAnalogInput(ANALOG_INPUT_PIN);
             input_.setBuffer(MAX_BUFFER);
 

@@ -13,6 +13,17 @@ public class HistoryActivity extends Activity {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+//        // Release the dbHelper
+//        if (dbHelper != null) {
+//            OpenHelperManager.releaseHelper();
+//            dbHelper = null;
+//        }
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.history, menu);

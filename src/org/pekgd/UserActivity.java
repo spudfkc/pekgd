@@ -25,6 +25,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.j256.ormlite.android.apptools.OpenHelperManager;
 import com.j256.ormlite.dao.Dao;
 
 /**
@@ -36,20 +37,12 @@ import com.j256.ormlite.dao.Dao;
  */
 public class UserActivity extends Activity {
 
-    /*
-     * Show current user at top
-     * Option to add new user at top
-     * Display list of users in listView
-     *  onclick of user, switch to that user? or start new MonitorActivity?
-     */
-
     static final String TAG = UserActivity.class.getClass().getName();
     static final String SESSION_USER_ID = "sessionUserId";
     static final int SWIPE_THRESHOLD = 50;
 
     private float hX;
     private float hY;
-
 
     private User sessionUser = null;
     private PekgdDbHelper dbHelper = null;
@@ -61,21 +54,31 @@ public class UserActivity extends Activity {
 
         // Set new user button up
         Button btnNew = (Button) findViewById(R.id.btnNewUser);
-            if (btnNew != null) {
+        if (btnNew != null) {
             btnNew.setOnClickListener(new OnClickListener() {
 
                 @Override
                 public void onClick(View v) {
-                    newUserBtnClick();
+                    newUser();
                 }
 
             });
         }
-
         populateUserList();
     }
 
-    private void newUserBtnClick() {
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        // Release the dbHelper
+        if (dbHelper != null) {
+            OpenHelperManager.releaseHelper();
+            dbHelper = null;
+        }
+    }
+
+    private void newUser() {
         Intent intent = new Intent(this, NewUserActivity.class);
         startActivity(intent);
     }

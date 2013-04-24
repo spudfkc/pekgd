@@ -22,7 +22,8 @@
 
         <activity
             android:name="org.pekgd.MonitorActivity"
-            android:label="@string/title_activity_monitor" >
+            android:label="@string/title_activity_monitor"
+            android:configChanges="orientation|screenSize" >
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />
             </intent-filter>
@@ -33,11 +34,13 @@
         </activity>
         <activity
             android:name="org.pekgd.HistoryActivity"
-            android:label="@string/title_activity_history" >
+            android:label="@string/title_activity_history"
+            android:configChanges="orientation|screenSize" >
         </activity>
         <activity
             android:name="org.pekgd.UserActivity"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:configChanges="orientation|screenSize" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -46,11 +49,13 @@
         </activity>
         <activity
             android:name="org.pekgd.SavedDataActivity"
-            android:label="@string/title_activity_saved_data" >
+            android:label="@string/title_activity_saved_data"
+            android:configChanges="orientation|screenSize" >
         </activity>
         <activity
             android:name="org.pekgd.NewUserActivity"
-            android:label="@string/title_activity_new_user" >
+            android:label="@string/title_activity_new_user"
+            android:configChanges="orientation|screenSize" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.pekgd.UserActivity" />

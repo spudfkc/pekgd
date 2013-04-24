@@ -50,7 +50,7 @@ public class MonitorActivity extends IOIOActivity {
     public static final int MAX_BUFFER = 10000;
 
     // The pin on which to read the voltage from the heart monitor circuit.
-    public static final int ANALOG_INPUT_PIN = 36;
+    public static final int ANALOG_INPUT_PIN = 42;
 
     // the tag that the logger uses for this class
     // Sticking to the format of the fully-qualified class name
@@ -69,6 +69,7 @@ public class MonitorActivity extends IOIOActivity {
     // This is the series of data points that we will be displaying on the graph
     // The single GraphView can have multiple series, but we only need one.
     private GraphViewSeries currentSeries;
+    private GraphViewSeries nextSeries;
 
     // The data collected and to be saved in the database - similar to GraphViewSeries
     private SavedData sessionData = null;
@@ -215,7 +216,7 @@ public class MonitorActivity extends IOIOActivity {
 
         // Disable the UI until the IOIO is connected
         enableUi(false);
-        Toast.makeText(this, "Waiting on IOIO connection...", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Waiting on IOIO connection...", Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -319,13 +320,13 @@ public class MonitorActivity extends IOIOActivity {
             public void run() {
                 series.appendData(data, true);
                 sessionData.addDataPoint(data.valueX, data.valueY);
-                try {
-                    dataDao.createOrUpdate(sessionData);
-                }
-                catch (SQLException e) {
-                    Log.e(TAG, "Unable to save or update data", e);
-                    throw new RuntimeException("Unable to save or update data", e);
-                }
+//                try {
+//                    dataDao.createOrUpdate(sessionData);
+//                }
+//                catch (SQLException e) {
+//                    Log.e(TAG, "Unable to save or update data", e);
+//                    throw new RuntimeException("Unable to save or update data", e);
+//                }
             }
         });
     }
@@ -365,6 +366,9 @@ public class MonitorActivity extends IOIOActivity {
         private long startTime;
 
         private long currentSample;
+        private final int MAX_SERIES_COUNT = 6000;
+        private int currentSeriesCount = 0;
+        private int nextSeriesCount = 0;
 
 
         /**
@@ -413,19 +417,44 @@ public class MonitorActivity extends IOIOActivity {
          */
         @Override
         public void loop() throws ConnectionLostException, InterruptedException {
-            int maxRead = 2000;
+            int maxRead = 50;
             int samplesAvailable = input_.available();
-            Log.d(TAG, "***AvailableSampled*** -> " + samplesAvailable);
+            Log.d(TAG, "***AvailableSamples*** -> " + samplesAvailable);
             if (samplesAvailable < maxRead) { maxRead = samplesAvailable; }
             for (int i = 0; i < maxRead; i++) {
+                input_.readBuffered();
                 final float reading = input_.readBuffered();
+
                 GraphViewData dataPoint = new GraphViewData(currentSample++, reading);
+
                 addData(currentSeries, dataPoint);
             }
             try {
-                Thread.sleep(50);
+                Thread.sleep(100);
             }
             catch (InterruptedException e) { /* we can't do much about this */ }
+
+            if (currentSample > MAX_SERIES_COUNT) {
+                currentSample = 0;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        currentSeries.resetData(new GraphViewData[0]);
+                    }
+
+                });
+            }
+
+//
+//            if (currentSeriesCount < MAX_SERIES_COUNT) {
+//                seriesToAddTo = currentSeries;
+//                nextSeries = new Gra;
+//            }
+//            else if (nextSeriesCount < MAX_SERIES_COUNT) {
+//                seriesToAddTo = nextSeries;
+//                currentSeries = null;
+//            }
+
         }
 
         /**

@@ -4,11 +4,40 @@
     android:layout_height="match_parent"
     tools:context=".MonitorActivity" >
 
+    <android.widget.Switch
+        android:id="@+id/swtPause"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true" />
+    
     <LinearLayout
         android:id="@+id/layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical" >
+        android:orientation="vertical" 
+        android:layout_below="@id/swtPause">
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/labelBPM"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/layout"
+        android:layout_toRightOf="@+id/swtPause"
+        android:paddingLeft="20dp"
+        android:text="BPM"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <TextView
+        android:id="@+id/textBPM"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/labelBPM"
+        android:layout_alignBottom="@+id/labelBPM"
+        android:layout_toRightOf="@+id/labelBPM"
+        android:paddingLeft="10dp"
+        android:text="0"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
 
 </RelativeLayout>

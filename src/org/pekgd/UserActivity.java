@@ -39,12 +39,17 @@ public class UserActivity extends Activity {
 
     static final String TAG = UserActivity.class.getClass().getName();
     static final String SESSION_USER_ID = "sessionUserId";
-    static final int SWIPE_THRESHOLD = 50;
+//    static final int SWIPE_THRESHOLD = 50;
+//
+//    private float hX;
+//    private float hY;
 
-    private float hX;
-    private float hY;
+    // DAO for accessing User objects
+    private Dao<User, UUID> userDao = null;
 
+    // The currently selected user for the session
     private User sessionUser = null;
+
     private PekgdDbHelper dbHelper = null;
 
     @Override
@@ -64,6 +69,12 @@ public class UserActivity extends Activity {
 
             });
         }
+    }
+
+    @Override
+    protected void onStart() {
+        // TODO
+        super.onStart();
         populateUserList();
     }
 
@@ -78,16 +89,26 @@ public class UserActivity extends Activity {
         }
     }
 
+    /**
+     * Starts the NewUserActivity to create a new user
+     */
     private void newUser() {
         Intent intent = new Intent(this, NewUserActivity.class);
         startActivity(intent);
     }
 
+    /**
+     * Populates the list of users in the view
+     * Also sets up onClick actions for the items, when an item is clicked the SavedDatactivity
+     * will start.
+     */
     private void populateUserList() {
+        /* There is a bug in this code where we can run into potential problems when having users
+         * with the same name. We may not get the specific user we clicked.
+         */
         ArrayList<String> usersList = new ArrayList<String>();
-        final Dao<User, UUID> userDao;
         try {
-            userDao = getDbHelper().getUserDao();
+            if (userDao == null) userDao = getDbHelper().getUserDao();
             List<User> users = userDao.queryForAll();
             for (User user : users) {
                 usersList.add(user.getName());
@@ -121,6 +142,10 @@ public class UserActivity extends Activity {
         });
     }
 
+    /**
+     * Takes the session user and starts the SavedDataActivity with that userId stored
+     * in the Intent.
+     */
     private void selectUser() {
         if (sessionUser == null) {
             throw new RuntimeException("No user selected!");
@@ -132,6 +157,10 @@ public class UserActivity extends Activity {
         startActivity(intent);
     }
 
+    /**
+     *
+     * @return cached or new PekgdDbHelper
+     */
     private PekgdDbHelper getDbHelper() {
         if (dbHelper == null) {
             dbHelper = PekgdDbHelper.getDbHelper(this);

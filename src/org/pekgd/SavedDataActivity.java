@@ -12,6 +12,8 @@ import org.pekgd.model.SavedData;
 import org.pekgd.model.User;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -53,6 +55,7 @@ public class SavedDataActivity extends Activity {
         initialize();
         restoreSessions();
 
+        // When the user clicks the Start Monitor button, it will go to the monitor activity
         Button btnMonitor = (Button) findViewById(R.id.btnStartMonitor);
         if (btnMonitor != null) {
             btnMonitor.setOnClickListener(new OnClickListener() {
@@ -65,6 +68,18 @@ public class SavedDataActivity extends Activity {
             });
         }
 
+        // When the user clicks the Delete User button, it will go to the user select activity
+        Button btnDelete = (Button) findViewById(R.id.btnDeleteUser);
+        if (btnDelete != null) {
+            btnDelete.setOnClickListener(new OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+                    deleteUser();
+                }
+
+            });
+        }
 
         ListView dataList = (ListView) findViewById(R.id.savedDataList);
         if (savedData.size() == 0) {
@@ -114,8 +129,38 @@ public class SavedDataActivity extends Activity {
         }
     }
 
-    private void selectData() {
+    private void deleteUser() {
 
+        new AlertDialog.Builder(this)
+        .setIcon(android.R.drawable.ic_dialog_alert)
+        .setTitle("Delete")
+        .setMessage("Are you sure you wish to delete this user?")
+        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                try {
+                    userDao.delete(sessionUser);
+                }
+                catch (SQLException e) {
+                    Log.e(TAG, "Unable to delete current user", e);
+                    throw new RuntimeException(e);
+                }
+
+                // Since we deleted the current user, go back to the User select screen
+                Intent intent = new Intent(SavedDataActivity.this, UserActivity.class);
+                startActivity(intent);
+            }
+
+        })
+        .setNegativeButton(R.string.no, null)
+        .show();
+
+    }
+
+    private void selectData() {
+        // TODO
+        throw new RuntimeException("Not yet implemented");
     }
 
     private void initialize() {

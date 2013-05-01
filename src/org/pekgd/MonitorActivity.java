@@ -8,9 +8,17 @@ import ioio.lib.util.BaseIOIOLooper;
 import ioio.lib.util.IOIOLooper;
 import ioio.lib.util.android.IOIOActivity;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.Format;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.pekgd.db.PekgdDbHelper;
@@ -21,11 +29,15 @@ import org.pekgd.model.User;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
@@ -38,7 +50,7 @@ import com.jjoe64.graphview.GraphViewSeries.GraphViewSeriesStyle;
 import com.jjoe64.graphview.LineGraphView;
 
 /**
- * This Activity saves and graphs the heart activity of a user.
+ * This Activity saves and graphs the waveform of a user's heart.
  *
  * @author ncc
  *
@@ -84,18 +96,16 @@ public class MonitorActivity extends IOIOActivity {
     // beats per minute of the current user
     private int bpm;
 
+    private boolean paused = false;
+
     // Data Access Objects used to access different objects from the database
     private Dao<SavedData, UUID> dataDao;
     private Dao<DataPoint, UUID> pointDao;
-
-    private MonitorActivity this_;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        this_ = this;
 
         Intent intent = getIntent();
 
@@ -182,6 +192,7 @@ public class MonitorActivity extends IOIOActivity {
             // This sets the starting position and size of the viewport
             // This may need more tweaking to look right. Also, I'm not sure
             // of performance impacts of such a large viewport.
+            // TODO - parameterize
             view.setViewPort(700, 5000);
 
             // This allows the user to scroll the graph from left to right
@@ -215,6 +226,7 @@ public class MonitorActivity extends IOIOActivity {
         }
 
         // Disable the UI until the IOIO is connected
+        initSwitch();
         enableUi(false);
         Toast.makeText(this, "Waiting on IOIO connection...", Toast.LENGTH_SHORT).show();
     }
@@ -231,6 +243,8 @@ public class MonitorActivity extends IOIOActivity {
             OpenHelperManager.releaseHelper();
             dbHelper = null;
         }
+
+//        dataDao.createOrUpdate(currentSeries);
     }
 
     /**
@@ -282,6 +296,28 @@ public class MonitorActivity extends IOIOActivity {
         return true;
     }
 
+    private void initSwitch() {
+        Switch swtPause = (Switch) findViewById(R.id.swtPause);
+        swtPause.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                    boolean isChecked) {
+                pause(isChecked);
+            }
+        });
+    }
+
+    private void pause(boolean value) {
+        if (value) {
+            if (paused) Log.e(TAG, "Cannot pause - already paused");
+            else paused = !paused;
+        }
+        else {
+            if (!paused) Log.e(TAG, "Cannot unpause - already unpaused");
+            else paused = !paused;
+        }
+    }
+
     /**
      * @explain
      *
@@ -331,6 +367,39 @@ public class MonitorActivity extends IOIOActivity {
         });
     }
 
+    private void writeDataToSD(GraphViewSeries series) {
+        Log.d(TAG, "Writing data...");
+        GraphViewData[] data = series.getValues();
+        File sdcard = Environment.getExternalStorageDirectory();
+        File dir = new File(sdcard.getAbsolutePath() + "/.pekgd/data");
+        dir.mkdirs();
+        File output = new File(dir, "data.out");
+        OutputStream fos = null;
+        try {
+            fos = new FileOutputStream(output);
+            for (GraphViewData d : data) {
+                if (d.valueX != 0 && d.valueY != 0) {
+                    fos.write(String.valueOf(d.valueX).getBytes());
+                    fos.write(',');
+                    fos.write(String.valueOf(d.valueY).getBytes());
+                    fos.write('\n');
+                }
+            }
+        }
+        catch (IOException e) {
+            Log.e(TAG, "File not found!", e);
+        }
+        finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {}
+            }
+        }
+        Log.d(TAG, "Finished writing data to: \n" + output.getAbsolutePath());
+
+    }
+
     /**
      * Creates and returns a new Looper object used to interface with the IOIO
      */
@@ -366,10 +435,10 @@ public class MonitorActivity extends IOIOActivity {
         private long startTime;
 
         private long currentSample;
-        private final int MAX_SERIES_COUNT = 6000;
+        private final int MAX_SERIES_COUNT = 7000;
+        private final double THRESHOLD = 0.55;
         private int currentSeriesCount = 0;
         private int nextSeriesCount = 0;
-
 
         /**
          * This method is ran once the IOIO has been successfully connected. It contains
@@ -385,7 +454,7 @@ public class MonitorActivity extends IOIOActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(this_, "IOIO Connected.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MonitorActivity.this, "IOIO Connected.", Toast.LENGTH_SHORT).show();
                 }
 
             });
@@ -395,6 +464,7 @@ public class MonitorActivity extends IOIOActivity {
             startTime = System.currentTimeMillis();
             currentSample = 0;
             enableUi(true);
+            startTime = System.currentTimeMillis();
         }
 
         /**
@@ -417,44 +487,37 @@ public class MonitorActivity extends IOIOActivity {
          */
         @Override
         public void loop() throws ConnectionLostException, InterruptedException {
-            int maxRead = 50;
-            int samplesAvailable = input_.available();
-            Log.d(TAG, "***AvailableSamples*** -> " + samplesAvailable);
-            if (samplesAvailable < maxRead) { maxRead = samplesAvailable; }
-            for (int i = 0; i < maxRead; i++) {
-                input_.readBuffered();
-                final float reading = input_.readBuffered();
+            if (!paused) {
+                int maxRead = 50;
+                int samplesAvailable = input_.available();
+                Log.d(TAG, "***AvailableSamples*** -> " + samplesAvailable);
+                if (samplesAvailable < maxRead) { maxRead = samplesAvailable; }
+                for (int i = 0; i < maxRead; i++) {
+                    input_.readBuffered();
+                    final float reading = input_.readBuffered();
+                    GraphViewData dataPoint = new GraphViewData(currentSample++, reading);
 
-                GraphViewData dataPoint = new GraphViewData(currentSample++, reading);
+                    addData(currentSeries, dataPoint);
+                    calculateBpm(reading, currentSample);
+                }
+                try {
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e) { /* we can't do much about this */ }
 
-                addData(currentSeries, dataPoint);
+                if (currentSample > MAX_SERIES_COUNT) {
+                    Log.d(TAG, "REFRESHING SERIES");
+                    currentSample = 0;
+                    writeDataToSD(currentSeries);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            currentSeries.resetData(new GraphViewData[0]);
+                        }
+                    });
+                }
+
             }
-            try {
-                Thread.sleep(100);
-            }
-            catch (InterruptedException e) { /* we can't do much about this */ }
-
-            if (currentSample > MAX_SERIES_COUNT) {
-                currentSample = 0;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        currentSeries.resetData(new GraphViewData[0]);
-                    }
-
-                });
-            }
-
-//
-//            if (currentSeriesCount < MAX_SERIES_COUNT) {
-//                seriesToAddTo = currentSeries;
-//                nextSeries = new Gra;
-//            }
-//            else if (nextSeriesCount < MAX_SERIES_COUNT) {
-//                seriesToAddTo = nextSeries;
-//                currentSeries = null;
-//            }
-
         }
 
         /**

@@ -3,9 +3,6 @@ package org.pekgd.db;
 import java.sql.SQLException;
 import java.util.UUID;
 
-import org.pekgd.db.contract.DataPointContract;
-import org.pekgd.db.contract.MonitorContract;
-import org.pekgd.db.contract.UserContract;
 import org.pekgd.model.DataPoint;
 import org.pekgd.model.SavedData;
 import org.pekgd.model.User;
@@ -17,7 +14,7 @@ import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 
-import android.R;
+//import android.R;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
